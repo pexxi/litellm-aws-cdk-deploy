@@ -1,0 +1,31 @@
+{
+	"name": "litellm-cdk",
+	"version": "0.1.0",
+	"bin": {
+		"litellm-cdk-fargate": "bin/litellm-cdk-fargate.js"
+	},
+	"scripts": {
+		"build": "tsc",
+		"watch": "tsc -w",
+		"clean": "rimraf cdk.out dist",
+		"cdk:synth": "dotenv -e .env -- cdk synth",
+		"cdk:diff": "dotenv -e .env -- cdk diff",
+		"cdk:bootstrap": "dotenv -e .env -- cdk bootstrap",
+		"cdk:deploy": "dotenv -e .env -- cdk deploy --require-approval never",
+		"cdk:deploy:clean": "npm run clean && npm install &&npm run build && npm run cdk:deploy",
+		"cdk:destroy": "dotenv -e .env -- cdk destroy",
+		"validate:config": "yamllint ../../config/config.yaml"
+	},
+	"devDependencies": {
+		"@types/node": "^22.15.17",
+		"aws-cdk": "^2.1014.0",
+		"dotenv-cli": "^8.0.0",
+		"rimraf": "^6.0.1",
+		"typescript": "^5.8.3",
+		"yaml-lint": "^1.7.0"
+	},
+	"dependencies": {
+		"aws-cdk-lib": "^2.195.0",
+		"constructs": "^10.4.2"
+	}
+}
