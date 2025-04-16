@@ -15,14 +15,14 @@
 		"cdk:destroy": "dotenv -e .env -- cdk destroy"
 	},
 	"devDependencies": {
-		"@types/node": "^22.14.0",
-		"aws-cdk": "^2.1007.0",
+		"@types/node": "^22.14.1",
+		"aws-cdk": "^2.1008.0",
 		"dotenv-cli": "^8.0.0",
 		"rimraf": "^6.0.1",
 		"typescript": "^5.8.3"
 	},
 	"dependencies": {
-		"aws-cdk-lib": "^2.188.0",
+		"aws-cdk-lib": "^2.189.1",
 		"constructs": "^10.4.2"
 	}
 }
