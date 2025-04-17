@@ -8,6 +8,8 @@ import * as path from "node:path";
 import * as fs from "node:fs";
 import { DatabaseConstruct } from "./database-construct";
 import { LiteLLMServiceConstruct } from "./litellm-service-construct";
+import { SecretValue } from "aws-cdk-lib";
+import { generateRandomPassword } from "../utils/random";
 
 export class LiteLLMStack extends cdk.Stack {
 	constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
@@ -67,9 +69,13 @@ export class LiteLLMStack extends cdk.Stack {
 			memoryLimit: 256, // Increase memory limit if needed for large files
 		});
 
-		const uiPassword = new secretsmanager.Secret(this, "LiteLLMUI", {
+		const uiPasswordSecret = new secretsmanager.Secret(this, "LiteLLMUI", {
 			description: "Secret for LiteLLM UI",
 			removalPolicy: cdk.RemovalPolicy.DESTROY,
+			// generate a default random password
+			secretStringValue: SecretValue.unsafePlainText(
+				generateRandomPassword(32),
+			),
 		});
 
 		const masterKeySecret = new secretsmanager.Secret(
@@ -78,6 +84,9 @@ export class LiteLLMStack extends cdk.Stack {
 			{
 				description: "Secret for LiteLLM Master Key",
 				removalPolicy: cdk.RemovalPolicy.DESTROY,
+				secretStringValue: SecretValue.unsafePlainText(
+					generateRandomPassword(32),
+				),
 			},
 		);
 
@@ -92,7 +101,7 @@ export class LiteLLMStack extends cdk.Stack {
 			vpc,
 			configBucket: s3ConfigBucket,
 			configObjectKey: "config/config.yaml",
-			uiPasswordSecret: uiPassword,
+			uiPasswordSecret: uiPasswordSecret,
 			masterKeySecret: masterKeySecret,
 			databaseUrl: database.databaseUrl,
 			databaseSecret: database.dbSecret,
@@ -120,7 +129,7 @@ export class LiteLLMStack extends cdk.Stack {
 		});
 
 		new cdk.CfnOutput(this, "UISecretARN", {
-			value: uiPassword.secretArn,
+			value: uiPasswordSecret.secretArn,
 			description: "ARN of the UI password secret in Secrets Manager",
 		});
 

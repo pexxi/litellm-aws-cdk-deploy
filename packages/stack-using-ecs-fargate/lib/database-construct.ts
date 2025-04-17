@@ -44,7 +44,10 @@ export class DatabaseConstruct extends Construct {
 				version: rds.PostgresEngineVersion.VER_16_8, // Use PostgreSQL 16.8
 			}),
 			credentials: rds.Credentials.fromSecret(this.dbSecret), // Get credentials from Secrets Manager
-			instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO), // Cost-efficient t3.micro
+			instanceType: ec2.InstanceType.of(
+				ec2.InstanceClass.T3,
+				ec2.InstanceSize.MICRO,
+			), // Cost-efficient t3.micro
 			vpc: props.vpc,
 			vpcSubnets: {
 				// Place the instance in private isolated subnets
