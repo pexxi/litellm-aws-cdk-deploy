@@ -11,18 +11,18 @@
 		"cdk:synth": "dotenv -e .env -- cdk synth",
 		"cdk:diff": "dotenv -e .env -- cdk diff",
 		"cdk:bootstrap": "dotenv -e .env -- cdk bootstrap",
-		"cdk:deploy": "dotenv -e .env -- cdk deploy",
+		"cdk:deploy": "dotenv -e .env -- cdk deploy --require-approval never",
 		"cdk:destroy": "dotenv -e .env -- cdk destroy"
 	},
 	"devDependencies": {
-		"@types/node": "^22.14.1",
-		"aws-cdk": "^2.1010.0",
+		"@types/node": "^22.15.12",
+		"aws-cdk": "^2.1013.0",
 		"dotenv-cli": "^8.0.0",
 		"rimraf": "^6.0.1",
 		"typescript": "^5.8.3"
 	},
 	"dependencies": {
-		"aws-cdk-lib": "^2.190.0",
+		"aws-cdk-lib": "^2.194.0",
 		"constructs": "^10.4.2"
 	}
 }

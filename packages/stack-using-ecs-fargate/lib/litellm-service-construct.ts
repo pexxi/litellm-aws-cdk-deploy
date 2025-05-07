@@ -3,18 +3,14 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as ecsPatterns from "aws-cdk-lib/aws-ecs-patterns";
 import { RetentionDays } from "aws-cdk-lib/aws-logs";
-import type * as s3 from "aws-cdk-lib/aws-s3";
-import type * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
+import type { DatabaseConstruct } from "./database-construct";
+import type { ConfigConstruct } from "./config-construct";
 
 export interface LiteLLMServiceConstructProps {
 	vpc: ec2.Vpc;
-	configBucket: s3.Bucket;
-	configObjectKey: string;
-	uiPasswordSecret: secretsmanager.Secret;
-	masterKeySecret: secretsmanager.Secret;
-	databaseUrl: string;
-	databaseSecret: secretsmanager.Secret;
+	database: DatabaseConstruct;
+	config: ConfigConstruct;
 }
 
 export class LiteLLMServiceConstruct extends Construct {
@@ -26,6 +22,9 @@ export class LiteLLMServiceConstruct extends Construct {
 		props: LiteLLMServiceConstructProps,
 	) {
 		super(scope, id);
+
+		const databaseUrl = props.database.databaseUrl;
+		const databaseSecret = props.database.dbSecret;
 
 		// Create Fargate service with Application Load Balancer
 		this.service = new ecsPatterns.ApplicationLoadBalancedFargateService(
@@ -43,18 +42,20 @@ export class LiteLLMServiceConstruct extends Construct {
 					), // Use specific tag if needed
 					environment: {
 						UI_USERNAME: "admin", // Default username for LiteLLM UI
-						LITELLM_CONFIG_BUCKET_NAME: props.configBucket.bucketName,
-						LITELLM_CONFIG_BUCKET_OBJECT_KEY: props.configObjectKey,
+						LITELLM_CONFIG_BUCKET_NAME: props.config.configBucket.bucketName,
+						LITELLM_CONFIG_BUCKET_OBJECT_KEY: props.config.configObjectKey,
 						AZURE_OPENAI_API_KEY: "placeholder", // Store sensitive keys in Secrets Manager
 						OPENAI_API_KEY: "placeholder", // Store sensitive keys in Secrets Manager
 						// Use the database URL
-						DATABASE_URL: props.databaseUrl,
+						DATABASE_URL: databaseUrl,
 					},
 					secrets: {
 						// Inject secrets securely
-						UI_PASSWORD: ecs.Secret.fromSecretsManager(props.uiPasswordSecret),
+						UI_PASSWORD: ecs.Secret.fromSecretsManager(
+							props.config.uiPasswordSecret,
+						),
 						LITELLM_MASTER_KEY: ecs.Secret.fromSecretsManager(
-							props.masterKeySecret,
+							props.config.masterKeySecret,
 						),
 						// Example for API keys (create secrets for these)
 						// AZURE_OPENAI_API_KEY: ecs.Secret.fromSecretsManager(secretsmanager.Secret.fromSecretNameV2(this, 'AzureApiKeySecret', 'my-azure-api-key-secret-name')),
@@ -111,10 +112,20 @@ export class LiteLLMServiceConstruct extends Construct {
 		// 	timeout: cdk.Duration.seconds(5),
 		// });
 
+		// Allow inbound access from the Fargate service's security group to the DB security group
+		props.database.allowConnectionFrom(
+			this.service.service.connections.securityGroups[0],
+		);
+
 		// Set up permissions
-		props.configBucket.grantRead(this.service.taskDefinition.taskRole);
-		props.databaseSecret.grantRead(this.service.taskDefinition.taskRole);
-		props.uiPasswordSecret.grantRead(this.service.taskDefinition.taskRole);
-		props.masterKeySecret.grantRead(this.service.taskDefinition.taskRole);
+		props.config.configBucket.grantRead(this.service.taskDefinition.taskRole);
+		props.config.key.grantDecrypt(this.service.taskDefinition.taskRole);
+		props.config.uiPasswordSecret.grantRead(
+			this.service.taskDefinition.taskRole,
+		);
+		props.config.masterKeySecret.grantRead(
+			this.service.taskDefinition.taskRole,
+		);
+		databaseSecret.grantRead(this.service.taskDefinition.taskRole);
 	}
 }
