@@ -23,9 +23,6 @@ export class LiteLLMServiceConstruct extends Construct {
 	) {
 		super(scope, id);
 
-		const databaseUrl = props.database.databaseUrl;
-		const databaseSecret = props.database.dbSecret;
-
 		// Create Fargate service with Application Load Balancer
 		this.service = new ecsPatterns.ApplicationLoadBalancedFargateService(
 			this,
@@ -46,8 +43,10 @@ export class LiteLLMServiceConstruct extends Construct {
 						LITELLM_CONFIG_BUCKET_OBJECT_KEY: props.config.configObjectKey,
 						AZURE_OPENAI_API_KEY: "placeholder", // Store sensitive keys in Secrets Manager
 						OPENAI_API_KEY: "placeholder", // Store sensitive keys in Secrets Manager
+						ANTHROPIC_API_KEY: "placeholder", // Store sensitive keys in Secrets Manager
+						GROQ_API_KEY: "placeholder", // Store sensitive keys in Secrets Manager
 						// Use the database URL
-						DATABASE_URL: databaseUrl,
+						DATABASE_URL: props.database.databaseUrl,
 					},
 					secrets: {
 						// Inject secrets securely
@@ -119,13 +118,14 @@ export class LiteLLMServiceConstruct extends Construct {
 
 		// Set up permissions
 		props.config.configBucket.grantRead(this.service.taskDefinition.taskRole);
-		props.config.key.grantDecrypt(this.service.taskDefinition.taskRole);
+		//props.config.configBucket.grantRead(this.service.taskDefinition.executionRole);
+		props.config.key?.grantDecrypt(this.service.taskDefinition.taskRole);
 		props.config.uiPasswordSecret.grantRead(
 			this.service.taskDefinition.taskRole,
 		);
 		props.config.masterKeySecret.grantRead(
 			this.service.taskDefinition.taskRole,
 		);
-		databaseSecret.grantRead(this.service.taskDefinition.taskRole);
+		props.database.dbSecret.grantRead(this.service.taskDefinition.taskRole);
 	}
 }

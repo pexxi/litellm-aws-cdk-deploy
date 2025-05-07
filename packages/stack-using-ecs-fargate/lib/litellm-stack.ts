@@ -42,10 +42,9 @@ export class LiteLLMStack extends cdk.Stack {
 		// Create database construct
 		const database = new DatabaseConstruct(this, "Database", {
 			vpc,
-			encryptionKey: config.key,
+			// encryptionKey: config.key,
 		});
 
-		// Create LiteLLM service using the extracted construct
 		const liteLLMService = new LiteLLMServiceConstruct(this, "LiteLLMProxy", {
 			vpc,
 			database,

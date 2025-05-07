@@ -6,7 +6,7 @@ import { Construct } from "constructs";
 
 export interface DatabaseConstructProps {
 	vpc: ec2.Vpc;
-	encryptionKey: kms.Key;
+	encryptionKey?: kms.Key;
 }
 
 export class DatabaseConstruct extends Construct {
@@ -55,7 +55,7 @@ export class DatabaseConstruct extends Construct {
 			},
 			securityGroups: [this.dbSecurityGroup],
 			storageEncrypted: true, // Ensure storage encryption is enabled
-			storageEncryptionKey: props.encryptionKey, // Use our KMS key for storage encryption
+			storageEncryptionKey: props.encryptionKey, // Use our KMS key for storage encryption, uses default master key if not provided
 			allocatedStorage: 20, // Minimum allocated storage in GB
 			maxAllocatedStorage: 100, // Maximum storage scaling limit in GB (enables storage autoscaling)
 			backupRetention: cdk.Duration.days(7), // Configure backup retention
