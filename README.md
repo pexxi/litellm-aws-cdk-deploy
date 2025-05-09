@@ -15,13 +15,24 @@ The CDK stack provisions the following core components:
 
 This setup allows you to have a self-hosted, centralized endpoint for managing and routing requests to different LLM providers within your AWS environment.
 
+**Key Features:**
+
+- **Scalable LiteLLM Proxy:** Utilizes ECS Fargate for a serverless, scalable proxy deployment.
+- **Persistent Storage:** Leverages RDS PostgreSQL for data persistence needs.
+- **Secure Configuration:** Manages sensitive data like API keys and database credentials using AWS Secrets Manager.
+- **Centralized Configuration:** Uses an S3 bucket for storing and managing the LiteLLM `config.yaml`.
+- **Environment-Specific Deployments:** Supports distinct configurations for `development` and `production` environments.
+    - **Production Safeguards:** Includes resource retention policies (S3, KMS, SecretsManager, RDS), S3 bucket versioning, RDS deletion protection, and ECS deployment circuit breakers to protect production workloads.
+    - **Development Convenience:** Uses more destructive default policies in non-production environments for easier cleanup and iteration.
+- **Container Health Checks:** Implements robust health checks for the LiteLLM service to ensure reliability.
+
 ## Prerequisites
 
 - Node.js (v14.x or later)
 - AWS CLI configured with appropriate credentials
 - AWS CDK CLI (`npm install -g aws-cdk`)
 
-## Setup
+## Deployment
 
 1.  Copy the example environment file and edit as needed:
     ```bash
@@ -40,8 +51,15 @@ This setup allows you to have a self-hosted, centralized endpoint for managing a
     ```
 
 4.  Deploy the stack:
+
+    For a **development** deployment (default, with resources configured for easier cleanup):
     ```bash
     npm run cdk:deploy
+    ```
+
+    For a **production** deployment (with enhanced data protection and safety features):
+    ```bash
+    ENV=production npm run cdk:deploy
     ```
 
 ## Environment Variables
@@ -50,10 +68,14 @@ Environment variables are required for deployment and operation. See `packages/s
 - `CDK_DEFAULT_ACCOUNT`, `CDK_DEFAULT_REGION`: AWS account and region
 - `AZURE_OPENAI_API_KEY`, `OPENAI_API_KEY`: API keys for LLM providers
 - `LITELLM_MASTER_KEY`, `UI_USERNAME`, `UI_PASSWORD`: Application secrets
+- `ENV`: (Optional) Specifies the deployment environment (e.g., `production`). If not set, defaults to a development-like deployment. Controls resource retention policies, S3 versioning, RDS deletion protection, and other environment-specific settings.
 
 ## Configuration
 
 - The LiteLLM configuration file is stored in the S3 bucket and can be customized in `config/config.yaml` before deployment.
+- The VPC is configured with both public and private subnets. **It is strongly recommended to review and adjust VPC, subnet, and Security Group configurations for production environments to limit exposure.**
+- Ensure you understand the network access rules before deploying to production.
+- **Production deployments (`ENV=production`) automatically enable stricter resource protection measures**, including S3 bucket versioning, RDS deletion protection, and retention policies for critical resources like KMS keys and secrets.
 
 ## Useful Commands
 
