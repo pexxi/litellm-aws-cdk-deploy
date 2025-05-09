@@ -7,6 +7,7 @@ import { Construct } from "constructs";
 export interface DatabaseConstructProps {
 	vpc: ec2.Vpc;
 	encryptionKey?: kms.Key;
+	isProduction: boolean;
 }
 
 export class DatabaseConstruct extends Construct {
@@ -62,8 +63,10 @@ export class DatabaseConstruct extends Construct {
 			preferredBackupWindow: "03:00-04:00", // Backup window (UTC)
 			databaseName: this.databaseName, // Specify the initial database name
 			copyTagsToSnapshot: true, // Copy tags to DB snapshots
-			removalPolicy: cdk.RemovalPolicy.DESTROY, // Change to RETAIN for production
-			deletionProtection: false, // Change to true for production
+			removalPolicy: props.isProduction
+				? cdk.RemovalPolicy.RETAIN
+				: cdk.RemovalPolicy.DESTROY, // Change to RETAIN for production
+			deletionProtection: props.isProduction, // Change to true for production
 			// Performance Insights is not included to reduce costs
 		});
 

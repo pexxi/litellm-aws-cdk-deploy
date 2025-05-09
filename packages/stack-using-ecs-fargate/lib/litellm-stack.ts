@@ -4,9 +4,15 @@ import { DatabaseConstruct } from "./database-construct";
 import { LiteLLMServiceConstruct } from "./litellm-service-construct";
 import { ConfigConstruct } from "./config-construct";
 
+interface LiteLLMStackProps extends cdk.StackProps {
+	isProduction: boolean;
+}
+
 export class LiteLLMStack extends cdk.Stack {
-	constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
+	constructor(scope: cdk.App, id: string, props: LiteLLMStackProps) {
 		super(scope, id, props);
+
+		const isProduction = props.isProduction;
 
 		// Create a VPC with two availability zones (RDS needs at least two)
 		const vpc = new ec2.Vpc(this, "VPC", {
@@ -37,18 +43,22 @@ export class LiteLLMStack extends cdk.Stack {
 		});
 
 		// Create Config construct
-		const config = new ConfigConstruct(this, "Config");
+		const config = new ConfigConstruct(this, "Config", {
+			isProduction,
+		});
 
 		// Create database construct
 		const database = new DatabaseConstruct(this, "Database", {
 			vpc,
-			// encryptionKey: config.key,
+			encryptionKey: config.key,
+			isProduction,
 		});
 
 		const liteLLMService = new LiteLLMServiceConstruct(this, "LiteLLMProxy", {
 			vpc,
 			database,
 			config,
+			isProduction,
 		});
 
 		// --- Outputs ---

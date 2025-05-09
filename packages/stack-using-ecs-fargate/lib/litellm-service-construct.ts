@@ -11,6 +11,7 @@ export interface LiteLLMServiceConstructProps {
 	vpc: ec2.Vpc;
 	database: DatabaseConstruct;
 	config: ConfigConstruct;
+	isProduction: boolean;
 }
 
 export class LiteLLMServiceConstruct extends Construct {
@@ -41,6 +42,7 @@ export class LiteLLMServiceConstruct extends Construct {
 						UI_USERNAME: "admin", // Default username for LiteLLM UI
 						LITELLM_CONFIG_BUCKET_NAME: props.config.configBucket.bucketName,
 						LITELLM_CONFIG_BUCKET_OBJECT_KEY: props.config.configObjectKey,
+						// Add placeholders to all environment variables that are mentioned in the config.yaml
 						AZURE_OPENAI_API_KEY: "placeholder", // Store sensitive keys in Secrets Manager
 						OPENAI_API_KEY: "placeholder", // Store sensitive keys in Secrets Manager
 						ANTHROPIC_API_KEY: "placeholder", // Store sensitive keys in Secrets Manager
@@ -70,17 +72,19 @@ export class LiteLLMServiceConstruct extends Construct {
 					logDriver: ecs.LogDrivers.awsLogs({
 						// Configure CloudWatch Logs
 						streamPrefix: "LiteLLMProxy",
-						logRetention: RetentionDays.ONE_MONTH, // Configure log retention
+						logRetention: props.isProduction
+							? RetentionDays.ONE_MONTH
+							: RetentionDays.ONE_WEEK,
 					}),
 				},
 				assignPublicIp: false, // Fargate tasks should run in private subnets, ALB is public
 				publicLoadBalancer: true, // Expose via a public ALB
 				desiredCount: 1, // Start with one task
-				// circuitBreaker: {
-				// 	// Enable ECS deployment circuit breaker for production
-				// 	enable: false,
-				// 	rollback: true,
-				// },
+				circuitBreaker: {
+					// Enable ECS deployment circuit breaker for production
+					enable: props.isProduction,
+					rollback: true,
+				},
 				cpu: 512, // Specify CPU units (adjust as needed)
 				memoryLimitMiB: 1024, // Specify memory (adjust as needed)
 				platformVersion: ecs.FargatePlatformVersion.LATEST, // Use the latest Fargate platform version
@@ -89,27 +93,30 @@ export class LiteLLMServiceConstruct extends Construct {
 					operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
 					cpuArchitecture: ecs.CpuArchitecture.ARM64,
 				},
-				// healthCheck: {
-				// 	command: [
-				// 		"CMD-SHELL",
-				// 		"curl -f http://localhost:4000/health/readiness || exit 1",
-				// 	],
-				// 	interval: cdk.Duration.seconds(30),
-				// 	timeout: cdk.Duration.seconds(5),
-				// 	startPeriod: cdk.Duration.seconds(5),
-				// 	retries: 3,
-				// },
+				healthCheck: {
+					// Add container health check using LiteLLM's /health/readiness endpoint
+					// This is an unprotected endpoint that checks if the proxy is ready to accept requests
+					// We use readiness instead of the full /health endpoint to avoid making API calls to LLM providers
+					command: [
+						"CMD-SHELL",
+						"curl -f http://0.0.0.0:4000/health/readiness || exit 1",
+					],
+					interval: cdk.Duration.seconds(30),
+					timeout: cdk.Duration.seconds(5),
+					retries: 3,
+					startPeriod: cdk.Duration.seconds(60), // Allow time for container to initialize
+				},
 			},
 		);
 
 		// Configure ALB Health Check
-		// this.service.targetGroup.configureHealthCheck({
-		// 	path: "/",
-		// 	interval: cdk.Duration.seconds(30),
-		// 	healthyThresholdCount: 2,
-		// 	unhealthyThresholdCount: 3,
-		// 	timeout: cdk.Duration.seconds(5),
-		// });
+		this.service.targetGroup.configureHealthCheck({
+			path: "/health/readiness", // Update ALB health check to use the same endpoint
+			interval: cdk.Duration.seconds(30),
+			healthyThresholdCount: 2,
+			unhealthyThresholdCount: 3,
+			timeout: cdk.Duration.seconds(5),
+		});
 
 		// Allow inbound access from the Fargate service's security group to the DB security group
 		props.database.allowConnectionFrom(
@@ -118,7 +125,6 @@ export class LiteLLMServiceConstruct extends Construct {
 
 		// Set up permissions
 		props.config.configBucket.grantRead(this.service.taskDefinition.taskRole);
-		//props.config.configBucket.grantRead(this.service.taskDefinition.executionRole);
 		props.config.key?.grantDecrypt(this.service.taskDefinition.taskRole);
 		props.config.uiPasswordSecret.grantRead(
 			this.service.taskDefinition.taskRole,
