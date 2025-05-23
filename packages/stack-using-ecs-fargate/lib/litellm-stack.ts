@@ -6,6 +6,7 @@ import { ConfigConstruct } from "./config-construct";
 
 interface LiteLLMStackProps extends cdk.StackProps {
 	isProduction: boolean;
+	vpcId?: string;
 }
 
 export class LiteLLMStack extends cdk.Stack {
@@ -14,33 +15,35 @@ export class LiteLLMStack extends cdk.Stack {
 
 		const isProduction = props.isProduction;
 
-		// Create a VPC with two availability zones (RDS needs at least two)
-		const vpc = new ec2.Vpc(this, "VPC", {
-			availabilityZones: ["eu-north-1a", "eu-north-1b"], // Specify AZs for your region, RDS needs at least two
-			natGateways: 1, // Use one NAT Gateway for private subnets
-			// Ensure private subnets are created for RDS
-			// If you only specify one AZ, CDK might only create public subnets by default.
-			// For production, ensure you have a proper multi-AZ setup with private subnets.
-			// For simplicity here, we might rely on default behavior or adjust as needed.
-			// Let's explicitly request private subnets for better practice.
-			subnetConfiguration: [
-				{
-					cidrMask: 24,
-					name: "ingress",
-					subnetType: ec2.SubnetType.PUBLIC,
-				},
-				{
-					cidrMask: 24,
-					name: "application",
-					subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
-				},
-				{
-					cidrMask: 28,
-					name: "database",
-					subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
-				},
-			],
-		});
+		// Use existing VPC if vpcId is provided, otherwise create a new one
+		const vpc = props.vpcId
+			? ec2.Vpc.fromLookup(this, "VPC", { vpcId: props.vpcId })
+			: new ec2.Vpc(this, "VPC", {
+					availabilityZones: ["eu-north-1a", "eu-north-1b"], // Specify AZs for your region, RDS needs at least two
+					natGateways: 1, // Use one NAT Gateway for private subnets
+					// Ensure private subnets are created for RDS
+					// If you only specify one AZ, CDK might only create public subnets by default.
+					// For production, ensure you have a proper multi-AZ setup with private subnets.
+					// For simplicity here, we might rely on default behavior or adjust as needed.
+					// Let's explicitly request private subnets for better practice.
+					subnetConfiguration: [
+						{
+							cidrMask: 24,
+							name: "ingress",
+							subnetType: ec2.SubnetType.PUBLIC,
+						},
+						{
+							cidrMask: 24,
+							name: "application",
+							subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+						},
+						{
+							cidrMask: 28,
+							name: "database",
+							subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+						},
+					],
+				});
 
 		// Create Config construct
 		const config = new ConfigConstruct(this, "Config", {

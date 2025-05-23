@@ -5,7 +5,7 @@ import type * as kms from "aws-cdk-lib/aws-kms";
 import { Construct } from "constructs";
 
 export interface DatabaseConstructProps {
-	vpc: ec2.Vpc;
+	vpc: ec2.IVpc;
 	encryptionKey?: kms.Key;
 	isProduction: boolean;
 }
