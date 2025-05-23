@@ -2,6 +2,7 @@ import * as cdk from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as ecsPatterns from "aws-cdk-lib/aws-ecs-patterns";
+import * as certificatemanager from "aws-cdk-lib/aws-certificatemanager";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import { RetentionDays } from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
@@ -9,7 +10,7 @@ import type { DatabaseConstruct } from "./database-construct";
 import type { ConfigConstruct } from "./config-construct";
 
 export interface LiteLLMServiceConstructProps {
-	vpc: ec2.Vpc;
+	vpc: ec2.IVpc;
 	database: DatabaseConstruct;
 	config: ConfigConstruct;
 	isProduction: boolean;

@@ -4,6 +4,7 @@ import * as cdk from "aws-cdk-lib";
 import { LiteLLMStack } from "../lib/litellm-stack";
 
 const isProduction = process.env.ENV === "production";
+const vpcId = process.env.VPC_ID;
 
 const env =
 	process.env.CDK_DEFAULT_ACCOUNT && process.env.CDK_DEFAULT_REGION
@@ -17,4 +18,5 @@ const app = new cdk.App();
 const stack = new LiteLLMStack(app, "LiteLLMStack", {
 	env,
 	isProduction,
+	vpcId,
 });
