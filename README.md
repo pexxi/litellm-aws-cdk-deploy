@@ -1,3 +1,5 @@
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/pexxi/litellm-aws-cdk-deploy)
+
 # LiteLLM CDK Deployment
 
 **Project Overview:**
